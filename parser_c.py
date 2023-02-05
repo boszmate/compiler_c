@@ -56,15 +56,38 @@ class Parser():
         # if-elif-else statement
         #   if comparision: nl
         #       {statement} nl
+        #   elif comparision: nl
+        #       {statement} nl
+        #   else: nl
+        #       {statement} nl
+        #
+        # while statement
+        #   while comparision: nl
+        #       {statement} nl
         # colon & nl = tab_indent_begin
-        elif self.check_token(TokenType.IF):
-            self.next_token()
-            self.comparision()
-            self.match_token(TokenType.TAB_INDENT_BEGIN)
+        elif self.check_token(TokenType.IF) or \
+             self.check_token(TokenType.ELIF) or \
+             self.check_token(TokenType.ELSE) or \
+             self.check_token(TokenType.WHILE):
 
+            if not self.check_token(TokenType.ELSE):
+                self.next_token()
+                self.comparision()
+            else:
+                self.next_token()
+
+            self.match_token(TokenType.TAB_INDENT_BEGIN)
             while not self.check_token(TokenType.TAB_INDENT_END):
                 self.statement()
             self.match_token(TokenType.TAB_INDENT_END)
+            return # return statement needs to be here due to fake token TAB_INDENT_END
+        # identifier
+        #   x = 1
+        # elif self.check_token(TokenType.IDENTIFIER):
+        #     self.next_token()
+
+        else:
+            self.abort(f'Invalid statement: {self.current_token.text} : {self.current_token.kind.name}')
 
         # new line
         self.nl()

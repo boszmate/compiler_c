@@ -15,13 +15,13 @@ def main():
 
     lex = Lexer(input)
     # # Print tokens = debug only
-    # token = lex.get_token()
-    # while token.kind != TokenType.EOF:
-    #     print(token.kind, token.text)
-    #     token = lex.get_token()
+    token = lex.get_token()
+    while token.kind != TokenType.EOF:
+        print(token.kind, token.text)
+        token = lex.get_token()
 
-    parser = Parser(lex)
-    parser.program()
+    # parser = Parser(lex)
+    # parser.program()
 
 if __name__ == "__main__":
     main()

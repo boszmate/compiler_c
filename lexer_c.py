@@ -8,6 +8,8 @@ class Lexer():
         self.current_position = -1
         self.tab_indent_level = 0
         self.scpace_count = 0
+        self.tab_indent_begin = False
+        self.tab_indent_end = False
         self.next_char()
 
     def next_char(self):
@@ -52,6 +54,11 @@ class Lexer():
     def get_token(self):
         token = None
        
+        # special whitespaces detecting
+        if self.tab_indent_begin:
+            token = Token(self.tab_indent_level, TokenType.TAB_INDENT_BEGIN)
+            self.tab_indent_begin = False
+            return token
         if self.detect_tab_end_indent():
             token = Token(self.tab_indent_level + 1, TokenType.TAB_INDENT_END)
             return token
@@ -148,11 +155,9 @@ class Lexer():
             token = Token(self.current_char, TokenType.ROUND_BRACKET_CLOSE)
         elif self.current_char == ':':
             if self.peek_next_char() == '\n':
-                self.next_char()
                 self.tab_indent_level += 1
-                token = Token(self.tab_indent_level, TokenType.TAB_INDENT_BEGIN)
-            else:
-                token = Token(self.current_char, TokenType.COLON)
+                self.tab_indent_begin = True
+            token = Token(self.current_char, TokenType.COLON)
 
         # special characters
         elif self.current_char == '\n':
