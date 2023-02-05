@@ -6,6 +6,8 @@ class Lexer():
         self.source = input + '\n'
         self.current_char = ''
         self.current_position = -1
+        self.tab_indent_level = 0
+        self.scpace_count = 0
         self.next_char()
 
     def next_char(self):
@@ -21,7 +23,22 @@ class Lexer():
         return self.source[self.current_position+1]
 
     def abort(self, msg):
-        sys.exit("Lexer error: " + msg)
+        sys.exit(f"Lexer error: {msg}")
+
+    def detect_tab_end_indent(self):
+        if not self.tab_indent_level == 0 and self.source[self.current_position - 1] == '\n':
+            self.scpace_count = 0
+            while self.current_char == ' ':
+                self.scpace_count += 1
+                self.next_char()
+            if not self.scpace_count % 4 == 0:
+                self.abort(f'Inncorect syntax {self.current_char} for {TokenType.TAB_INDENT}!')
+            tab_level = self.scpace_count / 4
+            if not self.tab_indent_level == tab_level:
+                if self.tab_indent_level > tab_level:
+                    self.tab_indent_level -= 1
+                    return True
+        return False
 
     def skip_whitespace(self):
         while self.current_char == ' ' or self.current_char == '\t' or self.current_char == '\r':
@@ -33,10 +50,14 @@ class Lexer():
                 self.next_char()
 
     def get_token(self):
+        token = None
+       
+        if self.detect_tab_end_indent():
+            token = Token(self.tab_indent_level + 1, TokenType.TAB_INDENT_END)
+            return token
+
         self.skip_whitespace()
         self.skip_comment()
-
-        token = None
 
         # simple arthmetic operators
         if self.current_char == '+':
@@ -101,7 +122,7 @@ class Lexer():
             if self.peek_next_char() == '.':
                 self.next_char()
                 if not self.peek_next_char().isdigit():
-                    self.abort("Illegal character for number! Char: " + self.peek_next_char())
+                    self.abort(f"Illegal character for number! Char: {self.peek_next_char()}")
                 while self.peek_next_char().isdigit():
                     self.next_char()
             number = self.source[start_position : self.current_position + 1]
@@ -120,13 +141,26 @@ class Lexer():
             else:
                 token = Token(substring, keyword)
 
+        # symbols
+        elif self.current_char == '(':
+            token = Token(self.current_char, TokenType.ROUND_BRACKET_OPEN)
+        elif self.current_char == ')':
+            token = Token(self.current_char, TokenType.ROUND_BRACKET_CLOSE)
+        elif self.current_char == ':':
+            if self.peek_next_char() == '\n':
+                self.next_char()
+                self.tab_indent_level += 1
+                token = Token(self.tab_indent_level, TokenType.TAB_INDENT_BEGIN)
+            else:
+                token = Token(self.current_char, TokenType.COLON)
+
         # special characters
         elif self.current_char == '\n':
             token = Token(self.current_char, TokenType.NEWLINE)
         elif self.current_char == '\0':
             token = Token(self.current_char, TokenType.EOF)
         else:
-            self.abort("Unknown token found! Token: " + self.current_char)
+            self.abort(f"Unknown token found! Token: {self.current_char}")
 
         self.next_char()
         return token
@@ -185,6 +219,7 @@ class TokenType(enum.Enum):
     WHILE = 133
     WITH = 134
     YIELD = 135
+    PRINT = 136
 
     # operators
     EQUAL = 201
@@ -201,4 +236,11 @@ class TokenType(enum.Enum):
     SHIFTLEFT = 212
     SHIFTRIGHT = 213
     NEGATION = 214
+
+    # symbols
+    ROUND_BRACKET_OPEN = 301
+    ROUND_BRACKET_CLOSE = 302
+    COLON = 303
+    TAB_INDENT_BEGIN = 304
+    TAB_INDENT_END = 305
     
