@@ -21,6 +21,8 @@ class Parser():
     def next_token(self):
         self.current_token = self.peek_token
         self.peek_token = self.lexer.get_token()
+        # Print only for Debug purpose
+        # print(self.peek_token.kind.name)
 
     def match_token(self, kind):
         if not self.check_token(kind):
