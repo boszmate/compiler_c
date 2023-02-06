@@ -6,6 +6,7 @@ class Parser():
         self.lexer = lexer
         self.current_token = None
         self.peek_token = None
+        self.skip_nl_after_tab_end = False
 
         # init current and next token
         self.next_token()
@@ -76,21 +77,27 @@ class Parser():
             else:
                 self.next_token()
 
+            self.match_token(TokenType.COLON)
+            self.match_token(TokenType.NEWLINE)
             self.match_token(TokenType.TAB_INDENT_BEGIN)
             while not self.check_token(TokenType.TAB_INDENT_END):
                 self.statement()
             self.match_token(TokenType.TAB_INDENT_END)
-            return # return statement needs to be here due to fake token TAB_INDENT_END
+            self.skip_nl_after_tab_end = True
         # identifier
         #   x = 1
-        # elif self.check_token(TokenType.IDENTIFIER):
-        #     self.next_token()
+        elif self.check_token(TokenType.IDENTIFIER):
+            self.next_token()
 
         else:
-            self.abort(f'Invalid statement: {self.current_token.text} : {self.current_token.kind.name}')
+            if not self.check_token(TokenType.NEWLINE):
+                self.abort(f'Invalid statement: {self.current_token.text} : {self.current_token.kind.name}')
 
         # new line
-        self.nl()
+        if self.skip_nl_after_tab_end:
+            self.skip_nl_after_tab_end = False
+        else:
+            self.nl()
 
     # new line
     def nl(self):

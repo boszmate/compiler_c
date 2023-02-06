@@ -9,6 +9,7 @@ class Lexer():
         self.tab_indent_level = 0
         self.scpace_count = 0
         self.tab_indent_begin = False
+        self.tab_indent_begin_nl = False
         self.tab_indent_end = False
         self.next_char()
 
@@ -34,7 +35,7 @@ class Lexer():
                 self.scpace_count += 1
                 self.next_char()
             if not self.scpace_count % 4 == 0:
-                self.abort(f'Inncorect syntax {self.current_char} for {TokenType.TAB_INDENT}!')
+                self.abort(f'Inncorect syntax {self.current_char} for {TokenType.TAB_INDENT_END}!')
             tab_level = self.scpace_count / 4
             if not self.tab_indent_level == tab_level:
                 if self.tab_indent_level > tab_level:
@@ -60,6 +61,7 @@ class Lexer():
             self.tab_indent_begin = False
             return token
         if self.detect_tab_end_indent():
+            self.tab_indent_end = True
             token = Token(self.tab_indent_level + 1, TokenType.TAB_INDENT_END)
             return token
 
@@ -156,11 +158,16 @@ class Lexer():
         elif self.current_char == ':':
             if self.peek_next_char() == '\n':
                 self.tab_indent_level += 1
-                self.tab_indent_begin = True
+                self.tab_indent_begin_nl = True
             token = Token(self.current_char, TokenType.COLON)
 
         # special characters
         elif self.current_char == '\n':
+            if self.tab_indent_begin_nl:
+                self.tab_indent_begin = True
+                self.tab_indent_begin_nl = False
+            if self.tab_indent_end:
+                self.tab_indent_end = False
             token = Token(self.current_char, TokenType.NEWLINE)
         elif self.current_char == '\0':
             token = Token(self.current_char, TokenType.EOF)
