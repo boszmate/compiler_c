@@ -8,6 +8,9 @@ class Parser():
         self.peek_token = None
         self.skip_nl_after_tab_end = False
 
+        # track declared variables as set
+        self.variables = set()
+        
         # init current and next token
         self.next_token()
         self.next_token()
@@ -89,8 +92,10 @@ class Parser():
         # identifier
         #   e.g. x = {expression}
         elif self.check_token(TokenType.IDENTIFIER):
+            if self.current_token.text not in self.variables:
+                self.variables.add(self.current_token.text)
+
             self.next_token()
-            self.match_token(TokenType.IDENTIFIER)
             self.match_token(TokenType.EQUAL)
             self.expression()
         else:
@@ -149,6 +154,8 @@ class Parser():
         if self.check_token(TokenType.NUMBER):
             self.next_token()
         elif self.check_token(TokenType.IDENTIFIER):
+            if self.current_token.text not in self.variables:
+                self.abort(f'Variable is not declared! Name: {self.current_token.text}')
             self.next_token()
         else:
             self.abort(f'Unrecognized token: {self.current_token.text}')
