@@ -1,6 +1,13 @@
 import sys
 from lexer_c import *
 from parser_c import *
+from emitter_c import *
+
+def debug_print(lex):
+    token = lex.get_token()
+    while token.kind != TokenType.EOF:
+        print(token.kind, token.text)
+        token = lex.get_token()
 
 def main():
     # input1 = "+- = >>>= == != ! /*"
@@ -15,13 +22,12 @@ def main():
 
     lex = Lexer(input)
     # # Print tokens = debug only
-    # token = lex.get_token()
-    # while token.kind != TokenType.EOF:
-    #     print(token.kind, token.text)
-    #     token = lex.get_token()
+    # debug_print(lex)
+    emit = Emitter('out.c')
+    parser = Parser(lex, emit)
 
-    parser = Parser(lex)
     parser.program()
+    emit.writeOutput()
 
 if __name__ == "__main__":
     main()

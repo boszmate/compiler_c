@@ -1,12 +1,15 @@
 import sys
 from lexer_c import *
+from emitter_c import *
 
 class Parser():
-    def __init__(self, lexer):
+    def __init__(self, lexer, emitter):
         self.lexer = lexer
+        self.emitter = emitter
         self.current_token = None
         self.peek_token = None
         self.skip_nl_after_tab_end = False
+        self.c_tab = '    '
 
         # track declared variables as set
         self.variables = set()
@@ -38,8 +41,17 @@ class Parser():
     # rules of py language
     def program(self):
         print("Program starts to parse...")
+
+        self.emitter.emit_header('#include <stdio.h>')
+        self.emitter.emit_header('int main(void){')
+
         while not self.check_token(TokenType.EOF):
+            self.emitter.emit(self.c_tab)
             self.statement()
+
+        self.emitter.emit_line('return 0;')
+        self.emitter.emit_line('}')
+
         print("Parsing completed.")
 
     def statement(self):
@@ -53,9 +65,12 @@ class Parser():
             self.next_token()
             while not self.check_token(TokenType.ROUND_BRACKET_CLOSE):
                 if self.check_token(TokenType.STRING):
+                    self.emitter.emit_line('printf(\"' + self.current_token.text + '\\n\");')
                     self.next_token()
                 else:
+                    self.emitter.emit('printf(\"%d\\n\", (int)(')
                     self.expression()
+                    self.emitter.emit_line('));')
 
             if self.check_token(TokenType.ROUND_BRACKET_CLOSE):
                 self.next_token()
@@ -71,33 +86,85 @@ class Parser():
         #   while comparison: nl
         #       {statement} nl
         # colon & nl = tab_indent_begin
-        elif self.check_token(TokenType.IF) or \
-             self.check_token(TokenType.ELIF) or \
-             self.check_token(TokenType.ELSE) or \
-             self.check_token(TokenType.WHILE):
-
-            if not self.check_token(TokenType.ELSE):
-                self.next_token()
-                self.comparison()
-            else:
-                self.next_token()
+        elif self.check_token(TokenType.IF):
+            self.next_token()
+            self.emitter.emit('if (')
+            self.comparison()
 
             self.match_token(TokenType.COLON)
+            self.emitter.emit_line(') {')
             self.match_token(TokenType.NEWLINE)
             self.match_token(TokenType.TAB_INDENT_BEGIN)
+            self.emitter.emit(self.c_tab)
             while not self.check_token(TokenType.TAB_INDENT_END):
                 self.statement()
             self.match_token(TokenType.TAB_INDENT_END)
+            self.emitter.emit(2*self.c_tab)
+            self.emitter.emit_line('}')
             self.skip_nl_after_tab_end = True
+
+        elif self.check_token(TokenType.ELIF):
+            self.next_token()
+            self.emitter.emit('else if (')
+            self.comparison()
+
+            self.match_token(TokenType.COLON)
+            self.emitter.emit_line(') {')
+            self.match_token(TokenType.NEWLINE)
+            self.match_token(TokenType.TAB_INDENT_BEGIN)
+            self.emitter.emit(2*self.c_tab)
+            while not self.check_token(TokenType.TAB_INDENT_END):
+                self.statement()
+            self.match_token(TokenType.TAB_INDENT_END)
+            self.emitter.emit(self.c_tab)
+            self.emitter.emit_line('}')
+            self.skip_nl_after_tab_end = True
+
+        elif self.check_token(TokenType.ELSE):
+            self.next_token()
+            self.emitter.emit('else ')
+
+            self.match_token(TokenType.COLON)
+            self.emitter.emit_line('{')
+            self.match_token(TokenType.NEWLINE)
+            self.match_token(TokenType.TAB_INDENT_BEGIN)
+            self.emitter.emit(2*self.c_tab)
+            while not self.check_token(TokenType.TAB_INDENT_END):
+                self.statement()
+            self.match_token(TokenType.TAB_INDENT_END)
+            self.emitter.emit(self.c_tab)
+            self.emitter.emit_line('}')
+            self.skip_nl_after_tab_end = True
+
+        elif self.check_token(TokenType.WHILE):
+            self.next_token()
+            self.emitter.emit('while(')
+            self.comparison()
+
+            self.match_token(TokenType.COLON)
+            self.emitter.emit_line(') {')
+            self.match_token(TokenType.NEWLINE)
+            self.match_token(TokenType.TAB_INDENT_BEGIN)
+            self.emitter.emit(2*self.c_tab)
+            while not self.check_token(TokenType.TAB_INDENT_END):
+                self.statement()
+            self.match_token(TokenType.TAB_INDENT_END)
+            self.emitter.emit(self.c_tab)
+            self.emitter.emit_line('}')
+            self.skip_nl_after_tab_end = True
+
         # identifier
         #   e.g. x = {expression}
         elif self.check_token(TokenType.IDENTIFIER):
             if self.current_token.text not in self.variables:
                 self.variables.add(self.current_token.text)
+                self.emitter.emit_header(self.c_tab + 'int ' + self.current_token.text + ';')
 
+            self.emitter.emit(self.current_token.text + ' = ')
             self.next_token()
             self.match_token(TokenType.EQUAL)
             self.expression()
+            self.emitter.emit_line(';')
         else:
             if not self.check_token(TokenType.NEWLINE):
                 self.abort(f'Invalid statement: {self.current_token.text} : {self.current_token.kind.name}')
@@ -126,6 +193,7 @@ class Parser():
     def expression(self):
         self.term()
         while self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
+            self.emitter.emit(' ' + self.current_token.text + ' ')
             self.next_token()
             self.term()
 
@@ -135,6 +203,7 @@ class Parser():
     def term(self):
         self.unary()
         while self.check_token(TokenType.ASTERISK) or self.check_token(TokenType.SLASH):
+            self.emitter.emit(' ' + self.current_token.text + ' ')
             self.next_token()
             self.unary()
 
@@ -144,6 +213,7 @@ class Parser():
     """
     def unary(self):
         if self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
+            self.emitter.emit(' ' + self.current_token.text + ' ')
             self.next_token()
         self.primary()
 
@@ -152,10 +222,13 @@ class Parser():
     """
     def primary(self):
         if self.check_token(TokenType.NUMBER):
+            self.emitter.emit(self.current_token.text)
             self.next_token()
         elif self.check_token(TokenType.IDENTIFIER):
             if self.current_token.text not in self.variables:
                 self.abort(f'Variable is not declared! Name: {self.current_token.text}')
+            
+            self.emitter.emit(self.current_token.text)
             self.next_token()
         else:
             self.abort(f'Unrecognized token: {self.current_token.text}')
@@ -170,6 +243,8 @@ class Parser():
         self.expression()
         if not self.is_comparison_operator():
             self.abort(f'Expected comparison operator! Got: {self.current_token.text}')
+        
+        self.emitter.emit(' ' + self.current_token.text + ' ')
         self.next_token()
         self.expression()
 
