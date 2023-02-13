@@ -6,13 +6,14 @@ class Emitter():
     def __init__(self, file_path):
         self.file_path = os.path.join('tests', file_path)
         self.code = ''
+        self.declaration = ''
 
     def abort(self, msg):
         sys.exit(f"Emitter error: {msg}")
 
     def writeOutput(self):
         with open(self.file_path, 'w') as outputFile:
-            outputFile.write(self.code)
+            outputFile.write(self.declaration + self.code)
 
     def emitLine(self, *args):
         for arg in args:
@@ -21,8 +22,27 @@ class Emitter():
             else:
                 self.code += arg.value
 
+    def emitDeclarationLine(self, *args):
+        for arg in args:
+            if type(arg) == str:
+                self.declaration += arg
+            else:
+                self.declaration += arg.value
+
+    def emitNumOrIden(self, iden):
+        self.code += iden
+
+    def emitOperator(self, operator):
+        self.code += ' ' + operator + ' '
+
+    def emitVarDeclare(self, var):
+        self.declaration += 'int ' + var + ';' + CLangNomen.NEW_LINE.value
+
+    def emitVarDefine(self, var):
+        self.code += var + ' = '
+
     def emitPreDefinedHeader(self, header):
-        self.emitLine(CLangNomen.HASH,
+        self.emitDeclarationLine(CLangNomen.HASH,
                       CLangNomen.INCLUDE,
                       CLangNomen.SPACE,
                       CLangNomen.ANGLE_BRACKET_BEGIN,
@@ -31,7 +51,7 @@ class Emitter():
                       CLangNomen.NEW_LINE)
 
     def emitUserHeader(self, header):
-        self.emitLine(CLangNomen.HASH,
+        self.emitDeclarationLine(CLangNomen.HASH,
                       CLangNomen.INCLUDE,
                       CLangNomen.SPACE,
                       CLangNomen.DOUBLE_QUOTE,
@@ -106,6 +126,11 @@ class Emitter():
     # '}'
     def emitCloseCurlyBracket(self):
         self.emitLine(CLangNomen.CURLY_BRACKET_END,
+                      CLangNomen.NEW_LINE)
+
+    # ';'
+    def emitSemicolon(self):
+        self.emitLine(CLangNomen.SEMICOLON,
                       CLangNomen.NEW_LINE)
 
     def emitTabSpace(self):

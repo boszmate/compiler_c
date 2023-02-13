@@ -46,6 +46,7 @@ class Parser():
         self.emitter.emitMainBegin()
 
         while not self.check_token(TokenType.EOF):
+            self.emitter.emitTabSpace()
             self.statement()
 
         self.emitter.emitMainEnd()
@@ -55,7 +56,6 @@ class Parser():
     def statement(self):
         # print statement
         #   print(string | expression) nl
-        self.emitter.emitTabSpace()
         if self.check_token(TokenType.PRINT):
             self.next_token()
             if not self.check_token(TokenType.ROUND_BRACKET_OPEN):
@@ -94,9 +94,12 @@ class Parser():
             self.emitter.emitStatementEnd()
             self.match_token(TokenType.NEWLINE)
             self.match_token(TokenType.TAB_INDENT_BEGIN)
+            self.emitter.emitTabSpace()
             while not self.check_token(TokenType.TAB_INDENT_END):
+                self.emitter.emitTabSpace()
                 self.statement()
             self.match_token(TokenType.TAB_INDENT_END)
+            self.emitter.emitTabSpace()
             self.emitter.emitCloseCurlyBracket()
             self.skip_nl_after_tab_end = True
 
@@ -149,13 +152,13 @@ class Parser():
         elif self.check_token(TokenType.IDENTIFIER):
             if self.current_token.text not in self.variables:
                 self.variables.add(self.current_token.text)
-                # self.emitter.emitHeader(self.c_tab + 'int ' + self.current_token.text + ';')
+                self.emitter.emitVarDeclare(self.current_token.text)
 
-            # self.emitter.emit(self.current_token.text + ' = ')
+            self.emitter.emitVarDefine(self.current_token.text)
             self.next_token()
             self.match_token(TokenType.EQUAL)
             self.expression()
-            # self.emitter.emitLine(';')
+            self.emitter.emitSemicolon()
         else:
             if not self.check_token(TokenType.NEWLINE):
                 self.abort(f'Invalid statement: {self.current_token.text} : {self.current_token.kind.name}')
@@ -184,7 +187,7 @@ class Parser():
     def expression(self):
         self.term()
         while self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
-            # self.emitter.emit(' ' + self.current_token.text + ' ')
+            self.emitter.emitOperator(self.current_token.text)
             self.next_token()
             self.term()
 
@@ -194,7 +197,7 @@ class Parser():
     def term(self):
         self.unary()
         while self.check_token(TokenType.ASTERISK) or self.check_token(TokenType.SLASH):
-            # self.emitter.emit(' ' + self.current_token.text + ' ')
+            self.emitter.emitOperator(self.current_token.text)
             self.next_token()
             self.unary()
 
@@ -204,7 +207,7 @@ class Parser():
     """
     def unary(self):
         if self.check_token(TokenType.PLUS) or self.check_token(TokenType.MINUS):
-            # self.emitter.emit(' ' + self.current_token.text + ' ')
+            self.emitter.emitOperator(self.current_token.text)
             self.next_token()
         self.primary()
 
@@ -213,13 +216,13 @@ class Parser():
     """
     def primary(self):
         if self.check_token(TokenType.NUMBER):
-            # self.emitter.emit(self.current_token.text)
+            self.emitter.emitNumOrIden(self.current_token.text)
             self.next_token()
         elif self.check_token(TokenType.IDENTIFIER):
             if self.current_token.text not in self.variables:
                 self.abort(f'Variable is not declared! Name: {self.current_token.text}')
             
-            # self.emitter.emit(self.current_token.text)
+            self.emitter.emitNumOrIden(self.current_token.text)
             self.next_token()
         else:
             self.abort(f'Unrecognized token: {self.current_token.text}')
@@ -234,8 +237,7 @@ class Parser():
         self.expression()
         if not self.is_comparison_operator():
             self.abort(f'Expected comparison operator! Got: {self.current_token.text}')
-        
-        # self.emitter.emit(' ' + self.current_token.text + ' ')
+        self.emitter.emitOperator(self.current_token.text)
         self.next_token()
         self.expression()
 
