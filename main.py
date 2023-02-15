@@ -10,11 +10,6 @@ def debug_print(lex):
         token = lex.get_token()
 
 def main():
-    # input1 = "+- = >>>= == != ! /*"
-    # input2 = "+- \'This is a string\' # This is a comment!\n */"
-    # input3 = "+-123 9.8654*/"
-    # input4 = "+- PRINT True* else +Else"
-
     if len(sys.argv) != 2:
         sys.exit("Error: Program needs input file with code source as argument!")
     with open(sys.argv[1], 'r') as f:

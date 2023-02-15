@@ -24,7 +24,23 @@ $ python ./main.py tests/input.py
 ```
 
 ## Output files in C
-Output C files are in the `tests` directory.
+#### 1. Manual tests
+You can run manual tests due to providing input file to python command line (look into `3. Run` in previous README section). The app return output C files are in the `tests` directory.
+
+#### 2. Unit tests
+Unit tests are available with following command line:
+```
+$ python -m unittest {path to unit test}
+```
+For example to run single test:
+```
+$ python -m unittest tests/unittests/test_print.py
+```
+For example to run all tests:
+```
+$ python -m unittest tests/unittests/*.py
+```
+
 
 ## ToDo
 To add:
