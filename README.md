@@ -23,7 +23,7 @@ For example:
 $ python ./main.py tests/input.py 
 ```
 
-## Output files in C
+## Tests
 #### 1. Manual tests
 You can run manual tests due to providing input file to python command line (look into `3. Run` in previous README section). The app return output C files are in the `tests` directory.
 

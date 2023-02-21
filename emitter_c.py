@@ -7,6 +7,8 @@ class Emitter():
         self.file_path = os.path.join('tests', file_path)
         self.code = ''
         self.declaration = ''
+        self.test = []
+        self.skip_test = False
 
     def abort(self, msg):
         sys.exit(f"Emitter error: {msg}")
@@ -15,12 +17,19 @@ class Emitter():
         with open(self.file_path, 'w') as outputFile:
             outputFile.write(self.declaration + self.code)
 
+    def getTestOutput(self):
+        return self.test
+
     def emitLine(self, *args):
         for arg in args:
             if type(arg) == str:
                 self.code += arg
+                if not self.skip_test:
+                    self.test.append(arg)
             else:
                 self.code += arg.value
+                if not self.skip_test:
+                    self.test.append(arg)
 
     def emitDeclarationLine(self, *args):
         for arg in args:
@@ -60,6 +69,7 @@ class Emitter():
                       CLangNomen.NEW_LINE)
 
     def emitMainBegin(self):
+        self.skip_test = True
         self.emitLine(CLangNomen.NEW_LINE,
                       CLangNomen.INTEGER,
                       CLangNomen.SPACE,
@@ -70,8 +80,10 @@ class Emitter():
                       CLangNomen.SPACE,
                       CLangNomen.CURLY_BRACKET_BEGIN,
                       CLangNomen.NEW_LINE)
+        self.skip_test = False
 
     def emitMainEnd(self):
+        self.skip_test = True
         self.emitLine(CLangNomen.RETURN,
                       CLangNomen.SPACE,
                       str(0),
@@ -79,6 +91,7 @@ class Emitter():
                       CLangNomen.NEW_LINE,
                       CLangNomen.CURLY_BRACKET_END,
                       CLangNomen.NEW_LINE)
+        self.skip_test = False
 
     # printf("Hello Compiler!\n");
     def emitPrintfString(self, text):
@@ -134,7 +147,9 @@ class Emitter():
                       CLangNomen.NEW_LINE)
 
     def emitTabSpace(self):
+        self.skip_test = True
         self.emitLine(CLangNomen.TAB_SPACE)
+        self.skip_test = False
 
 # C language nomenclature
 class CLangNomen(enum.Enum):

@@ -9,7 +9,6 @@ class Parser():
         self.current_token = None
         self.peek_token = None
         self.skip_nl_after_tab_end = False
-        self.c_tab = '    '
 
         # track declared variables as set
         self.variables = set()
